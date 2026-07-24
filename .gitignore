@@ -1,0 +1,8 @@
+site-host/
+site-package-*.tar.gz
+handoff-context.md
+ksure-public-data-blog.docx
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

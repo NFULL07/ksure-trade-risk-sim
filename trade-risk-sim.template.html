@@ -1,0 +1,1885 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>무역 리스크 대응 시뮬레이션</title>
+  <meta name="description" content="한국무역보험공사 공공데이터를 읽고 거래 위험을 관리하는 교육용 경영 시뮬레이션">
+  <style>
+    :root {
+      --ink: #11243d;
+      --muted: #617085;
+      --line: #dce4ec;
+      --paper: #ffffff;
+      --canvas: #f4f7f9;
+      --navy: #12395f;
+      --blue: #1662a8;
+      --blue-soft: #eaf3fb;
+      --teal: #0b7a75;
+      --green: #287a45;
+      --green-soft: #edf8f0;
+      --amber: #a65b00;
+      --amber-soft: #fff5df;
+      --red: #b42331;
+      --red-soft: #fff0f1;
+      --shadow: 0 16px 50px rgba(17, 36, 61, .11);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-width: 320px; scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% -10%, rgba(42, 134, 195, .12), transparent 32rem),
+        linear-gradient(180deg, #f9fbfc 0, var(--canvas) 35rem);
+      font-family: Pretendard, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    button, input { font: inherit; }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible + .choice-face,
+    .market-radio:focus-visible + .market-card-inner {
+      outline: 3px solid rgba(22, 98, 168, .28);
+      outline-offset: 3px;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 26px 0 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      letter-spacing: -.03em;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background: linear-gradient(145deg, var(--navy), var(--blue));
+      box-shadow: 0 8px 20px rgba(18, 57, 95, .2);
+    }
+
+    .brand-mark svg { width: 24px; height: 24px; }
+
+    .data-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      border: 1px solid #c8d9e8;
+      border-radius: 999px;
+      color: var(--navy);
+      background: rgba(255, 255, 255, .78);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .data-pill::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 4px rgba(11, 122, 117, .12);
+    }
+
+    main { padding: 18px 0 64px; }
+
+    .screen { display: none; animation: screen-in .35s ease both; }
+    .screen.active { display: block; }
+
+    @keyframes screen-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      min-height: 600px;
+      padding: clamp(38px, 7vw, 82px);
+      border: 1px solid rgba(18, 57, 95, .08);
+      border-radius: 34px;
+      background:
+        linear-gradient(125deg, rgba(255,255,255,.98), rgba(239,247,251,.94)),
+        var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 360px;
+      height: 360px;
+      top: -210px;
+      right: -100px;
+      border: 55px solid rgba(22, 98, 168, .08);
+    }
+
+    .hero::after {
+      width: 220px;
+      height: 220px;
+      right: 9%;
+      bottom: -135px;
+      background: rgba(11, 122, 117, .06);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 18px;
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      max-width: 780px;
+      margin: 0;
+      font-size: clamp(40px, 6.2vw, 76px);
+      line-height: 1.06;
+      letter-spacing: -.065em;
+    }
+
+    .hero h1 span { color: var(--blue); }
+
+    .hero-logo-crop {
+      position: relative;
+      z-index: 1;
+      width: 300px;
+      height: 138px;
+      margin: -20px 0 8px;
+      overflow: hidden;
+    }
+
+    .ksure-logo {
+      display: block;
+      width: 500px;
+      max-width: none;
+      height: auto;
+      transform: translate(-100px, -64px);
+    }
+
+    .hero-copy {
+      max-width: 690px;
+      margin: 24px 0 0;
+      color: #4f6075;
+      font-size: clamp(17px, 2vw, 21px);
+      letter-spacing: -.015em;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 38px;
+      flex-wrap: wrap;
+    }
+
+    .primary-button,
+    .secondary-button {
+      min-height: 52px;
+      padding: 0 22px;
+      border-radius: 14px;
+      font-weight: 900;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .primary-button {
+      color: white;
+      background: var(--navy);
+      box-shadow: 0 10px 24px rgba(18, 57, 95, .2);
+    }
+
+    .primary-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(18, 57, 95, .25);
+    }
+
+    .primary-button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+    }
+
+    .secondary-button {
+      color: var(--navy);
+      border: 1px solid #c7d4df;
+      background: white;
+    }
+
+    .secondary-button:hover { background: #f5f9fc; }
+
+    .demo-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,.76);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hero-facts {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 760px;
+      margin-top: 56px;
+    }
+
+    .fact {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.78);
+    }
+
+    .fact strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 17px;
+    }
+
+    .fact span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .disclaimer {
+      max-width: 820px;
+      margin: 24px 0 0;
+      color: #6d7887;
+      font-size: 12px;
+    }
+
+    .tutorial-wrap,
+    .end-wrap {
+      padding: clamp(26px, 5vw, 58px);
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .section-kicker {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .section-heading {
+      max-width: 780px;
+      margin: 9px 0 12px;
+      font-size: clamp(30px, 5vw, 52px);
+      line-height: 1.12;
+      letter-spacing: -.05em;
+    }
+
+    .section-lead {
+      max-width: 740px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .indicator-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 34px 0;
+    }
+
+    .indicator-card {
+      min-height: 246px;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: #fbfcfd;
+    }
+
+    .indicator-number {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      color: white;
+      background: var(--navy);
+      font-weight: 900;
+    }
+
+    .indicator-card h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      letter-spacing: -.03em;
+    }
+
+    .indicator-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .question-tag {
+      display: inline-block;
+      margin-top: 18px;
+      padding: 7px 10px;
+      border-radius: 9px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .tutorial-note {
+      display: flex;
+      gap: 13px;
+      align-items: flex-start;
+      padding: 18px;
+      border-radius: 14px;
+      color: #604600;
+      background: var(--amber-soft);
+      font-size: 14px;
+    }
+
+    .tutorial-note strong { white-space: nowrap; }
+
+    .tutorial-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .game-topbar {
+      position: sticky;
+      z-index: 10;
+      top: 8px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+      padding: 16px 20px;
+      border: 1px solid rgba(198, 211, 223, .9);
+      border-radius: 20px;
+      background: rgba(255,255,255,.93);
+      box-shadow: 0 10px 32px rgba(17,36,61,.08);
+      backdrop-filter: blur(12px);
+    }
+
+    .stage-name {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--blue);
+    }
+
+    .turn-name {
+      margin-top: 2px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -.025em;
+    }
+
+    .fund-block { text-align: center; }
+
+    .fund-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .fund {
+      display: block;
+      font-size: clamp(26px, 4vw, 42px);
+      line-height: 1.05;
+      letter-spacing: -.045em;
+      font-variant-numeric: tabular-nums;
+      font-weight: 950;
+    }
+
+    .fund.pulse { animation: fund-pulse .45s ease; }
+
+    @keyframes fund-pulse {
+      50% { color: var(--blue); transform: scale(1.04); }
+    }
+
+    .goal-lines {
+      justify-self: end;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .goal-lines strong { color: var(--ink); }
+
+    .progress-track {
+      grid-column: 1 / -1;
+      height: 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e6edf3;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--teal));
+      transition: width .35s ease;
+    }
+
+    .game-heading-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 20px;
+      margin: 34px 0 18px;
+    }
+
+    .game-heading-row h2 {
+      margin: 4px 0 0;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.1;
+      letter-spacing: -.045em;
+    }
+
+    .game-heading-row p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .market-option {
+      position: relative;
+      min-width: 0;
+    }
+
+    .market-radio {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .market-card-inner {
+      display: block;
+      width: 100%;
+      position: relative;
+      height: 100%;
+      padding: 22px;
+      border: 2px solid transparent;
+      border-radius: 22px;
+      background: var(--paper);
+      box-shadow: 0 8px 25px rgba(17,36,61,.08);
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+      cursor: pointer;
+    }
+
+    .market-card-inner:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 34px rgba(17,36,61,.12);
+    }
+
+    .market-radio:checked + .market-card-inner {
+      border-color: var(--blue);
+      box-shadow: 0 14px 36px rgba(22,98,168,.18);
+    }
+
+    .selected-mark {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      color: white;
+      background: var(--blue);
+      opacity: 0;
+      transform: scale(.7);
+      transition: .2s ease;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .market-radio:checked + .market-card-inner .selected-mark {
+      opacity: 1;
+      transform: none;
+    }
+
+    .market-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-right: 32px;
+    }
+
+    .flag {
+      flex: 0 0 auto;
+      font-size: 33px;
+      line-height: 1;
+      filter: saturate(.9);
+    }
+
+    .market-title h3 {
+      overflow-wrap: anywhere;
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.18;
+      letter-spacing: -.035em;
+    }
+
+    .sector {
+      display: -webkit-box;
+      overflow: hidden;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .metric-stack {
+      display: grid;
+      gap: 16px;
+      margin-top: 23px;
+      padding-top: 19px;
+      border-top: 1px solid #e8edf2;
+    }
+
+    .metric-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .metric-head strong { font-size: 13px; }
+
+    .ri-segments,
+    .grade-segments {
+      display: grid;
+      gap: 4px;
+    }
+
+    .ri-segments { grid-template-columns: repeat(5, 1fr); }
+    .grade-segments { grid-template-columns: repeat(7, 1fr); }
+
+    .segment {
+      height: 7px;
+      border-radius: 999px;
+      background: #e7ebef;
+    }
+
+    .ri-segments .segment.on:nth-child(1) { background: #2f8c51; }
+    .ri-segments .segment.on:nth-child(2) { background: #73a947; }
+    .ri-segments .segment.on:nth-child(3) { background: #d19a22; }
+    .ri-segments .segment.on:nth-child(4) { background: #d46c28; }
+    .ri-segments .segment.on:nth-child(5) { background: #c73542; }
+    .grade-segments .segment.on { background: var(--navy); }
+
+    .credit-dots {
+      display: flex;
+      gap: 5px;
+      min-height: 12px;
+    }
+
+    .credit-dot {
+      width: 11px;
+      height: 11px;
+      border: 2px solid #aeb9c4;
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .credit-dot.on {
+      border-color: var(--amber);
+      background: var(--amber);
+    }
+
+    .market-yield {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .yield-cell {
+      padding: 12px;
+      border-radius: 12px;
+      background: #f4f7f9;
+    }
+
+    .yield-cell span {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .yield-cell strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 18px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .controls-panel {
+      display: grid;
+      grid-template-columns: 1.4fr .8fr;
+      gap: 16px;
+      margin-top: 18px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+    }
+
+    .controls-panel.hidden { display: none; }
+
+    .controls-panel > * { min-width: 0; }
+
+    .control-title {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .term-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .term-option { position: relative; }
+    .term-option input { position: absolute; opacity: 0; }
+
+    .choice-face {
+      display: block;
+      height: 100%;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+      background: #fbfcfd;
+    }
+
+    .term-option input:checked + .choice-face {
+      color: var(--navy);
+      border-color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .choice-face strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .choice-face small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .insurance-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      width: 100%;
+      min-width: 0;
+      height: 100%;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfcfd;
+    }
+
+    .insurance-box input {
+      flex: 0 0 19px;
+      width: 19px;
+      height: 19px;
+      margin-top: 2px;
+      accent-color: var(--blue);
+    }
+
+    .insurance-box span { min-width: 0; }
+
+    .insurance-box strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .insurance-box small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .decision-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-top: 18px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.86);
+    }
+
+    .decision-summary {
+      min-width: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .decision-summary strong {
+      display: block;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 15px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chart-panel {
+      margin-top: 22px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+    }
+
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .chart-head h3 { margin: 0; font-size: 15px; }
+    .chart-legend { color: var(--muted); font-size: 11px; }
+
+    .fund-chart {
+      width: 100%;
+      height: auto;
+      min-height: 180px;
+      overflow: visible;
+    }
+
+    .end-wrap { text-align: center; }
+
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: var(--green);
+      background: var(--green-soft);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .end-fund {
+      display: block;
+      max-width: 100%;
+      margin: 20px 0 0;
+      padding-bottom: 6px;
+      font-size: clamp(48px, 8vw, 86px);
+      line-height: 1.08;
+      letter-spacing: -.065em;
+      font-weight: 950;
+      overflow-wrap: anywhere;
+    }
+
+    .end-unit {
+      display: block;
+      position: relative;
+      z-index: 1;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .lessons {
+      max-width: 720px;
+      margin: 32px auto 0;
+      padding: 24px;
+      border-radius: 20px;
+      text-align: left;
+      background: #f5f8fa;
+    }
+
+    .lessons h3 { margin: 0 0 12px; font-size: 17px; }
+    .lessons ul { margin: 0; padding-left: 21px; }
+    .lessons li + li { margin-top: 9px; }
+
+    .end-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .source-footer {
+      margin-top: 26px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    dialog {
+      width: min(540px, calc(100% - 28px));
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      border-radius: 24px;
+      color: var(--ink);
+      background: white;
+      box-shadow: 0 28px 90px rgba(17,36,61,.28);
+    }
+
+    dialog::backdrop {
+      background: rgba(11, 26, 43, .58);
+      backdrop-filter: blur(4px);
+    }
+
+    .dialog-body { padding: 30px; }
+
+    .result-icon {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 18px;
+      border-radius: 17px;
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .result-icon.success { color: var(--green); background: var(--green-soft); }
+    .result-icon.accident,
+    .result-icon.fraud { color: var(--red); background: var(--red-soft); }
+    .result-icon.emergency { color: var(--amber); background: var(--amber-soft); }
+    .result-icon svg { width: 28px; height: 28px; }
+
+    .dialog-body h2 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.16;
+      letter-spacing: -.04em;
+    }
+
+    .dialog-lead {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .delta {
+      margin-top: 22px;
+      font-size: 34px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 950;
+      letter-spacing: -.04em;
+    }
+
+    .delta.positive { color: var(--green); }
+    .delta.negative { color: var(--red); }
+
+    .why-box {
+      margin-top: 18px;
+      padding: 15px;
+      border-radius: 13px;
+      color: #34465b;
+      background: #f4f7f9;
+      font-size: 13px;
+    }
+
+    .why-box strong { color: var(--ink); }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      padding: 17px 22px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+
+    .fraud-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      padding: 17px 22px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfd;
+    }
+
+    .danger-button {
+      min-height: 50px;
+      padding: 0 16px;
+      border-radius: 13px;
+      color: white;
+      background: var(--red);
+      font-weight: 900;
+    }
+
+    .safe-button {
+      min-height: 50px;
+      padding: 0 16px;
+      border-radius: 13px;
+      color: white;
+      background: var(--navy);
+      font-weight: 900;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 900px) {
+      .indicator-grid,
+      .market-grid { grid-template-columns: 1fr; }
+      .indicator-card { min-height: auto; }
+      .market-card-inner { min-height: 0; }
+      .controls-panel { grid-template-columns: 1fr; }
+      .game-heading-row { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 20px, 1180px); }
+      .site-header { padding-top: 14px; }
+      .brand span { display: none; }
+      .hero { min-height: auto; padding: 30px 22px; border-radius: 24px; }
+      .hero-logo-crop { width: 240px; height: 110px; margin: -16px 0 8px; }
+      .ksure-logo { width: 400px; transform: translate(-80px, -51px); }
+      .hero-facts { grid-template-columns: 1fr; margin-top: 38px; }
+      .hero-actions { align-items: stretch; flex-direction: column; }
+      .primary-button, .secondary-button { width: 100%; }
+      .demo-toggle { justify-content: center; }
+      .tutorial-wrap, .end-wrap { padding: 26px 18px; border-radius: 22px; }
+      .tutorial-actions { flex-direction: column-reverse; }
+      .game-topbar {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        top: 4px;
+        padding: 13px;
+      }
+      .fund-block { text-align: right; }
+      .goal-lines { display: none; }
+      .term-options { grid-template-columns: 1fr; }
+      .decision-bar { align-items: stretch; flex-direction: column; }
+      .decision-bar .primary-button { width: 100%; }
+      .fraud-actions { grid-template-columns: 1fr; }
+      .dialog-actions { flex-direction: column-reverse; }
+      .dialog-actions button { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="site-header">
+      <div class="brand" aria-label="무역 리스크 대응 시뮬레이션">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 16.5h16M6 16.5v-7l6-3 6 3v7M9 16.5v-4h6v4"/>
+            <path d="M3 20h18"/>
+          </svg>
+        </div>
+        <span>무역 리스크 대응 시뮬레이션</span>
+      </div>
+      <div class="data-pill" id="data-status">실제 공공데이터 1,041개 시장</div>
+    </header>
+
+    <main>
+      <section class="screen active" id="start-screen" aria-labelledby="start-title">
+        <div class="hero">
+          <div class="hero-logo-crop">
+            <img class="ksure-logo" src="__KSURE_LOGO_DATA_URI__" alt="한국무역보험공사 K-SURE">
+          </div>
+          <p class="eyebrow">K-SURE DATA-DRIVEN TRADE LAB</p>
+          <h1 id="start-title">위험을 피하는 대신,<br><span>읽고 관리하세요.</span></h1>
+          <p class="hero-copy">
+            가상 수출기업의 사장이 되어 현재 알려진 시장 위험을 비교하고,
+            결제조건과 무역보험으로 자금 10,000 크레딧을 지켜보세요.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-button" id="start-button" type="button">경영 시작하기</button>
+            <label class="demo-toggle">
+              <input type="checkbox" id="demo-mode">
+              발표용 재현 모드
+            </label>
+          </div>
+          <div class="hero-facts" aria-label="게임 핵심 규칙">
+            <div class="fact"><strong>8개 분기</strong><span>위험 읽기 4턴 + 조건 관리 4턴</span></div>
+            <div class="fact"><strong>매 턴 3개 시장</strong><span>안전·중간·위험 층에서 하나씩 제시</span></div>
+            <div class="fact"><strong>파산선 3,000</strong><span>끝까지 버티고 시작 자금을 회복하세요</span></div>
+          </div>
+          <p class="disclaimer">
+            한국무역보험공사 공공데이터(국가별 업종별 위험지수·주요 업종별 신용위험지수·국가신용등급) 기반.
+            게임의 사고확률·수익률 등은 교육용 설계값입니다. 본 시뮬레이션은 교육용이며 실제 거래 판단의 근거가 아닙니다.
+          </p>
+        </div>
+      </section>
+
+      <section class="screen" id="tutorial-screen" aria-labelledby="tutorial-title">
+        <div class="tutorial-wrap">
+          <span class="section-kicker">DATA BRIEFING</span>
+          <h2 class="section-heading" id="tutorial-title">세 지표는 서로 다른 질문에 답합니다.</h2>
+          <p class="section-lead">
+            숫자가 모두 높아 보인다고 같은 위험은 아닙니다. 시장 전반, 거래 상대의 대금 회수,
+            국가 차원의 비상위험을 나눠 읽는 것이 첫 번째 경영 판단입니다.
+          </p>
+          <div class="indicator-grid">
+            <article class="indicator-card">
+              <div class="indicator-number">1</div>
+              <h3>종합 위험 · RI1~RI5</h3>
+              <p>K-SURE Risk Index. 숫자가 클수록 주의가 필요한 시장이며, 게임에서는 일반 사고의 기본확률을 정합니다.</p>
+              <span class="question-tag">“이 시장 전반은 얼마나 위험한가?”</span>
+            </article>
+            <article class="indicator-card">
+              <div class="indicator-number">2</div>
+              <h3>돈 떼일 위험 · 낮음~높음</h3>
+              <p>신용평가를 받은 국외기업 중 신용불량 등급 비율입니다. 게임에서는 일반 사고확률에 가중됩니다.</p>
+              <span class="question-tag">“대금을 못 받을 가능성은?”</span>
+            </article>
+            <article class="indicator-card">
+              <div class="indicator-number">3</div>
+              <h3>나라 위험 · 1~7등급</h3>
+              <p>숫자가 작을수록 안전합니다. 전쟁·내란·송금 제한 같은 국가 차원의 비상위험 이벤트를 정합니다.</p>
+              <span class="question-tag">“국가 사유로 거래가 막힐 가능성은?”</span>
+            </article>
+          </div>
+          <div class="tutorial-note">
+            <strong>경영 원칙</strong>
+            <span>위험도가 높은 시장도 조건과 보험으로 관리할 수 있습니다. 반대로 낮은 RI만 보고 나라 위험이나 신용위험을 놓치면 손실이 날 수 있습니다.</span>
+          </div>
+          <div class="tutorial-actions">
+            <button class="secondary-button" id="tutorial-back" type="button">처음으로</button>
+            <button class="primary-button" id="tutorial-next" type="button">스테이지 1 시작</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="game-screen" aria-labelledby="game-title">
+        <div class="game-topbar">
+          <div>
+            <div class="stage-name" id="stage-name">STAGE 1 · 위험지수 읽기</div>
+            <div class="turn-name" id="turn-name">1분기 / 4분기</div>
+          </div>
+          <div class="fund-block" aria-live="polite">
+            <span class="fund-label">보유 자금</span>
+            <strong class="fund" id="fund-display">10,000</strong>
+          </div>
+          <div class="goal-lines">
+            목표선 <strong>10,000</strong><br>
+            파산선 <strong>3,000 미만</strong>
+          </div>
+          <div class="progress-track" aria-label="전체 게임 진행률">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="game-heading-row">
+          <div>
+            <span class="section-kicker">QUARTERLY OPPORTUNITIES</span>
+            <h2 id="game-title">이번 분기, 어디와 거래할까요?</h2>
+          </div>
+          <p id="stage-guide">스테이지 1은 후불 거래로 고정됩니다. 세 지표를 비교해 시장 하나를 고르세요.</p>
+        </div>
+
+        <div class="market-grid" id="market-grid" role="radiogroup" aria-label="시장 후보"></div>
+
+        <section class="controls-panel hidden" id="controls-panel" aria-labelledby="conditions-title">
+          <div>
+            <h3 class="control-title" id="conditions-title">결제조건</h3>
+            <div class="term-options" id="term-options"></div>
+          </div>
+          <div>
+            <h3 class="control-title">무역보험</h3>
+            <label class="insurance-box">
+              <input type="checkbox" id="insurance-toggle">
+              <span>
+                <strong>비상위험 담보 포함</strong>
+                <small>보험료 300 · 일반 사고 손실 70%, 비상위험 손실 60% 보상</small>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <div class="decision-bar">
+          <div class="decision-summary" id="decision-summary">
+            <strong>시장을 선택하세요</strong>
+            선택한 시장과 거래조건을 확인한 뒤 진행합니다.
+          </div>
+          <button class="primary-button" id="resolve-button" type="button" disabled>이 거래 진행</button>
+        </div>
+
+        <section class="chart-panel" aria-labelledby="chart-title">
+          <div class="chart-head">
+            <h3 id="chart-title">자금 추이</h3>
+            <span class="chart-legend">실선 자금 · 목표/파산선 점선</span>
+          </div>
+          <svg class="fund-chart" id="fund-chart" viewBox="0 0 800 220" role="img" aria-label="턴별 보유 자금 추이"></svg>
+        </section>
+      </section>
+
+      <section class="screen" id="end-screen" aria-labelledby="end-title">
+        <div class="end-wrap">
+          <div class="result-badge" id="end-badge">경영 결과 · 성공</div>
+          <h2 class="section-heading" id="end-title">데이터로 위험을 관리했습니다.</h2>
+          <div class="end-fund" id="end-fund">10,000</div>
+          <div class="end-unit">최종 보유 크레딧</div>
+          <p class="section-lead" id="end-summary" style="margin:18px auto 0"></p>
+          <div class="lessons">
+            <h3>이번 플레이의 교훈</h3>
+            <ul id="lesson-list"></ul>
+          </div>
+          <div class="end-actions">
+            <button class="primary-button" id="restart-button" type="button">다시 경영하기</button>
+          </div>
+          <p class="source-footer">
+            본 시뮬레이션은 교육용이며 실제 거래 판단의 근거가 아닙니다.
+            등장하는 거래 상대는 모두 가상이며, 시장 데이터는 한국무역보험공사 공공데이터를 바탕으로 구성했습니다.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="result-dialog" aria-labelledby="result-dialog-title">
+    <div class="dialog-body">
+      <div class="result-icon" id="result-icon" aria-hidden="true"></div>
+      <h2 id="result-dialog-title">거래 결과</h2>
+      <p class="dialog-lead" id="result-lead"></p>
+      <div class="delta" id="result-delta"></div>
+      <div class="why-box" id="result-why"></div>
+    </div>
+    <div class="dialog-actions">
+      <button class="primary-button" id="result-next" type="button">다음 분기</button>
+    </div>
+  </dialog>
+
+  <dialog id="stage-dialog" aria-labelledby="stage-dialog-title">
+    <div class="dialog-body">
+      <div class="result-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19V5M4 6h10l-2 3 2 3H4"/>
+          <path d="M8 19h12"/>
+        </svg>
+      </div>
+      <h2 id="stage-dialog-title">스테이지 2 · 조건으로 관리</h2>
+      <p class="dialog-lead">
+        이제 시장뿐 아니라 결제조건과 보험도 고릅니다. 선불은 안전하지만 수익이 낮고,
+        보험은 손실을 줄이지만 보험료가 듭니다. 나라 위험은 결제조건보다 보험으로 대비하세요.
+      </p>
+    </div>
+    <div class="dialog-actions">
+      <button class="primary-button" id="stage-next" type="button">조건 협상 시작</button>
+    </div>
+  </dialog>
+
+  <dialog id="fraud-dialog" aria-labelledby="fraud-title">
+    <div class="dialog-body">
+      <div class="result-icon fraud" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3 2.8 19h18.4L12 3Z"/>
+          <path d="M12 9v4M12 16.5v.5"/>
+        </svg>
+      </div>
+      <h2 id="fraud-title">계좌 변경 메일이 도착했습니다.</h2>
+      <p class="dialog-lead">
+        거래처 담당자를 사칭한 메일이 “계좌가 바뀌었으니 새 계좌로 바로 송금하라”고 요청합니다.
+        무역보험은 제3자 편취 사기를 보상하지 않습니다.
+      </p>
+      <div class="why-box"><strong>어떻게 할까요?</strong> 메일만 믿고 송금할지, 기존 연락처로 유선 확인할지 선택하세요.</div>
+    </div>
+    <div class="fraud-actions">
+      <button class="danger-button" id="fraud-send" type="button">새 계좌로 바로 송금</button>
+      <button class="safe-button" id="fraud-check" type="button">기존 번호로 유선 확인</button>
+    </div>
+  </dialog>
+
+  <script>
+    "use strict";
+
+    /* ===== 게임 밸런스 설정: 공공 원천데이터와 분리된 교육용 설계값 ===== */
+    const CONFIG = Object.freeze({
+      START_FUND: 10000,
+      BANKRUPTCY_FUND: 3000,
+      DEAL_AMOUNT: 3000,
+      TURNS_PER_STAGE: 4,
+      RI_TABLE: Object.freeze({
+        1: { accidentProb: 0.05, returnRate: 0.08 },
+        2: { accidentProb: 0.15, returnRate: 0.12 },
+        3: { accidentProb: 0.30, returnRate: 0.20 },
+        4: { accidentProb: 0.50, returnRate: 0.32 },
+        5: { accidentProb: 0.70, returnRate: 0.45 }
+      }),
+      CREDIT_TABLE: Object.freeze({
+        "낮음": 0,
+        "중간": 0.05,
+        "높음": 0.12
+      }),
+      GRADE_TABLE: Object.freeze({
+        1: 0, 2: 0, 3: 0.08, 4: 0.08, 5: 0.20, 6: 0.35, 7: 0.35
+      }),
+      PAYMENT_TERMS: Object.freeze({
+        postpaid: { label: "후불(전액)", probMult: 1, returnMult: 1.35, loss: 3000, note: "고수익 · 고위험" },
+        partial: { label: "부분선불(50%)", probMult: 0.6, returnMult: 0.85, loss: 1500, note: "균형형 조건" },
+        prepaid: { label: "선불(전액)", probMult: 0.2, returnMult: 0.55, loss: 0, note: "저수익 · 저위험" }
+      }),
+      INSURANCE: Object.freeze({
+        premium: 300,
+        accidentCoverage: 0.70,
+        emergencyCoverage: 0.60
+      }),
+      EMERGENCY_LOSS: 1500,
+      FRAUD_LOSS: 3000,
+      FRAUD_EVENT_PROB: 0.35
+    });
+
+    /* ===== B-1에서 생성한 실제 시장 데이터 ===== */
+    const MARKET_DATA = __MARKET_DATA__;
+    const ISO3_TO_ALPHA2 = __ISO3_TO_ALPHA2__;
+
+    const SCREENS = {
+      start: document.getElementById("start-screen"),
+      tutorial: document.getElementById("tutorial-screen"),
+      game: document.getElementById("game-screen"),
+      end: document.getElementById("end-screen")
+    };
+
+    const ICONS = {
+      SUCCESS: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m5 12 4 4L19 6"/><path d="M4 20h16"/></svg>`,
+      ACCIDENT: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4M12 16.5v.5"/></svg>`,
+      EMERGENCY: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M4 5h12l-2 4 2 4H4"/><path d="M8 18h12"/></svg>`,
+      FRAUD: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6M9 17h6"/></svg>`
+    };
+
+    let state = createInitialState();
+
+    function createInitialState() {
+      return {
+        screen: "start",
+        stage: 1,
+        turn: 1,
+        fund: CONFIG.START_FUND,
+        history: [],
+        candidates: [],
+        selectedId: null,
+        paymentTerm: "postpaid",
+        insurance: false,
+        usedMarketIds: new Set(),
+        demoMode: false,
+        seed: 20250720,
+        fraudCheckedThisTurn: false,
+        pendingMarket: null
+      };
+    }
+
+    function showScreen(name) {
+      Object.entries(SCREENS).forEach(([key, element]) => {
+        element.classList.toggle("active", key === name);
+      });
+      state.screen = name;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function random() {
+      if (!state.demoMode) return Math.random();
+      state.seed = (state.seed * 1664525 + 1013904223) >>> 0;
+      return state.seed / 4294967296;
+    }
+
+    function shuffle(items) {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function pickFromPool(pool) {
+      const unused = pool.filter(item => !state.usedMarketIds.has(item.id));
+      const source = unused.length ? unused : pool;
+      const selected = source[Math.floor(random() * source.length)];
+      state.usedMarketIds.add(selected.id);
+      return selected;
+    }
+
+    function drawMarketsForTurn() {
+      const all = MARKET_DATA.markets;
+      const low = all.filter(market => market.ri <= 2);
+      const mid = all.filter(market => market.ri === 3);
+      const high = all.filter(market => market.ri >= 4);
+      return shuffle([pickFromPool(low), pickFromPool(mid), pickFromPool(high)]);
+    }
+
+    function deriveStats(market) {
+      return {
+        ...market,
+        accidentProb: CONFIG.RI_TABLE[market.ri].accidentProb,
+        returnRate: CONFIG.RI_TABLE[market.ri].returnRate,
+        creditWeight: CONFIG.CREDIT_TABLE[market.creditRisk],
+        emergencyProb: CONFIG.GRADE_TABLE[market.countryGrade]
+      };
+    }
+
+    function flagEmoji(alpha3) {
+      const alpha2 = ISO3_TO_ALPHA2[alpha3];
+      if (!alpha2) return "🌐";
+      return [...alpha2].map(letter =>
+        String.fromCodePoint(127397 + letter.charCodeAt(0))
+      ).join("");
+    }
+
+    function formatNumber(value) {
+      return Math.round(value).toLocaleString("ko-KR");
+    }
+
+    function formatPercent(value) {
+      return `${Math.round(value * 100)}%`;
+    }
+
+    function signedAmount(value) {
+      const rounded = Math.round(value);
+      return `${rounded >= 0 ? "+" : "−"}${formatNumber(Math.abs(rounded))}`;
+    }
+
+    function prepareTurn() {
+      state.candidates = drawMarketsForTurn().map(deriveStats);
+      state.selectedId = null;
+      state.fraudCheckedThisTurn = false;
+      state.pendingMarket = null;
+      if (state.stage === 1) {
+        state.paymentTerm = "postpaid";
+        state.insurance = false;
+      } else if (!CONFIG.PAYMENT_TERMS[state.paymentTerm]) {
+        state.paymentTerm = "partial";
+      }
+      renderGame();
+    }
+
+    function renderGame() {
+      const isStageTwo = state.stage === 2;
+      document.getElementById("stage-name").textContent =
+        isStageTwo ? "STAGE 2 · 조건으로 위험 관리" : "STAGE 1 · 위험지수 읽기";
+      document.getElementById("turn-name").textContent =
+        `${state.turn}분기 / ${CONFIG.TURNS_PER_STAGE}분기`;
+      document.getElementById("stage-guide").textContent = isStageTwo
+        ? "시장·결제조건·보험을 함께 설계하세요. 비상위험은 거래 상대와 별도로 판정됩니다."
+        : "스테이지 1은 후불 거래로 고정됩니다. 세 지표를 비교해 시장 하나를 고르세요.";
+      document.getElementById("controls-panel").classList.toggle("hidden", !isStageTwo);
+      document.getElementById("progress-fill").style.width =
+        `${((state.stage - 1) * CONFIG.TURNS_PER_STAGE + state.turn - 1) / (CONFIG.TURNS_PER_STAGE * 2) * 100}%`;
+      renderFund();
+      renderMarkets();
+      renderTermOptions();
+      renderDecision();
+      renderChart();
+    }
+
+    function renderFund() {
+      const element = document.getElementById("fund-display");
+      element.textContent = formatNumber(state.fund);
+      element.classList.remove("pulse");
+      void element.offsetWidth;
+      element.classList.add("pulse");
+    }
+
+    function segments(count, active, className) {
+      return `<div class="${className}" aria-hidden="true">${
+        Array.from({ length: count }, (_, index) =>
+          `<span class="segment ${index < active ? "on" : ""}"></span>`
+        ).join("")
+      }</div>`;
+    }
+
+    function creditDots(label) {
+      const active = { "낮음": 1, "중간": 2, "높음": 3 }[label];
+      return `<div class="credit-dots" aria-hidden="true">${
+        Array.from({ length: 3 }, (_, index) =>
+          `<span class="credit-dot ${index < active ? "on" : ""}"></span>`
+        ).join("")
+      }</div>`;
+    }
+
+    function renderMarkets() {
+      const term = CONFIG.PAYMENT_TERMS[state.paymentTerm];
+      const grid = document.getElementById("market-grid");
+      grid.innerHTML = state.candidates.map(market => {
+        const adjustedProb = (market.accidentProb + market.creditWeight) * term.probMult;
+        const adjustedReturn = market.returnRate * term.returnMult;
+        return `
+          <label class="market-option">
+            <input class="market-radio" type="radio" name="market" value="${market.id}"
+              ${state.selectedId === market.id ? "checked" : ""}>
+            <span class="market-card-inner">
+              <span class="selected-mark" aria-hidden="true">✓</span>
+              <span class="market-title">
+                <span class="flag" aria-hidden="true">${flagEmoji(market.countryCode)}</span>
+                <span>
+                  <h3>${escapeHtml(market.country)}</h3>
+                  <span class="sector">${escapeHtml(market.sector)}</span>
+                </span>
+              </span>
+              <span class="metric-stack">
+                <span>
+                  <span class="metric-head"><span>종합 위험</span><strong>RI${market.ri}</strong></span>
+                  ${segments(5, market.ri, "ri-segments")}
+                </span>
+                <span>
+                  <span class="metric-head"><span>돈 떼일 위험</span><strong>${market.creditRisk}</strong></span>
+                  ${creditDots(market.creditRisk)}
+                </span>
+                <span>
+                  <span class="metric-head"><span>나라 위험</span><strong>${market.countryGrade}등급</strong></span>
+                  ${segments(7, market.countryGrade, "grade-segments")}
+                </span>
+              </span>
+              <span class="market-yield">
+                <span class="yield-cell">
+                  <span>성공 시 수익률</span>
+                  <strong>+${formatPercent(adjustedReturn)}</strong>
+                </span>
+                <span class="yield-cell">
+                  <span>일반 사고확률</span>
+                  <strong>${formatPercent(adjustedProb)}</strong>
+                </span>
+              </span>
+            </span>
+          </label>
+        `;
+      }).join("");
+
+      grid.querySelectorAll(".market-radio").forEach(input => {
+        input.addEventListener("change", event => {
+          state.selectedId = event.target.value;
+          renderDecision();
+        });
+      });
+    }
+
+    function renderTermOptions() {
+      const container = document.getElementById("term-options");
+      container.innerHTML = Object.entries(CONFIG.PAYMENT_TERMS).map(([key, term]) => `
+        <label class="term-option">
+          <input type="radio" name="payment-term" value="${key}" ${state.paymentTerm === key ? "checked" : ""}>
+          <span class="choice-face">
+            <strong>${term.label}</strong>
+            <small>${term.note} · 손실 ${formatNumber(term.loss)}</small>
+          </span>
+        </label>
+      `).join("");
+      container.querySelectorAll("input").forEach(input => {
+        input.addEventListener("change", event => {
+          state.paymentTerm = event.target.value;
+          renderMarkets();
+          renderDecision();
+        });
+      });
+      const insurance = document.getElementById("insurance-toggle");
+      insurance.checked = state.insurance;
+      insurance.onchange = event => {
+        state.insurance = event.target.checked;
+        renderDecision();
+      };
+    }
+
+    function renderDecision() {
+      const market = state.candidates.find(item => item.id === state.selectedId);
+      const summary = document.getElementById("decision-summary");
+      const button = document.getElementById("resolve-button");
+      button.disabled = !market;
+      if (!market) {
+        summary.innerHTML = "<strong>시장을 선택하세요</strong>선택한 시장과 거래조건을 확인한 뒤 진행합니다.";
+        return;
+      }
+      const conditions = state.stage === 1
+        ? "후불(전액) · 보험 없음"
+        : `${CONFIG.PAYMENT_TERMS[state.paymentTerm].label} · 보험 ${state.insurance ? "가입" : "미가입"}`;
+      summary.innerHTML = `<strong>${escapeHtml(market.country)} · ${escapeHtml(market.sector)}</strong>${conditions}`;
+    }
+
+    function submitTurn() {
+      const market = state.candidates.find(item => item.id === state.selectedId);
+      if (!market) return;
+      state.pendingMarket = market;
+
+      const isFraudCheckpoint = state.stage === 2 && state.turn === CONFIG.TURNS_PER_STAGE;
+      if (isFraudCheckpoint && !state.fraudCheckedThisTurn) {
+        state.fraudCheckedThisTurn = true;
+        if (state.demoMode || random() < CONFIG.FRAUD_EVENT_PROB) {
+          document.getElementById("fraud-dialog").showModal();
+          return;
+        }
+      }
+      resolveTurn(market);
+    }
+
+    function resolveTurn(market) {
+      const term = CONFIG.PAYMENT_TERMS[state.paymentTerm];
+      const previousFund = state.fund;
+      const emergencyRoll = random();
+      let result;
+
+      if (emergencyRoll < market.emergencyProb) {
+        let loss = CONFIG.EMERGENCY_LOSS;
+        if (state.insurance) {
+          loss *= (1 - CONFIG.INSURANCE.emergencyCoverage);
+        }
+        state.fund -= loss;
+        result = {
+          type: "EMERGENCY",
+          delta: -loss,
+          title: "비상위험이 발생했습니다.",
+          lead: `${market.country} 시장에서 송금 지연·거래 중단 상황이 발생했습니다.`,
+          why: `나라 위험 ${market.countryGrade}등급의 게임 기준 비상위험 확률은 ${formatPercent(market.emergencyProb)}입니다.${
+            state.insurance ? " 비상위험 담보가 손실의 60%를 보상했습니다." : " 보험이 없어 손실을 직접 부담했습니다."
+          }`
+        };
+      } else {
+        const accidentProb =
+          (market.accidentProb + market.creditWeight) * term.probMult;
+        const accidentRoll = random();
+        if (accidentRoll >= accidentProb) {
+          let profit = CONFIG.DEAL_AMOUNT * market.returnRate * term.returnMult;
+          if (state.insurance) profit -= CONFIG.INSURANCE.premium;
+          state.fund += profit;
+          result = {
+            type: "SUCCESS",
+            delta: profit,
+            title: "대금 회수에 성공했습니다.",
+            lead: `${market.country} 거래가 완료되어 수익이 자금에 반영됐습니다.`,
+            why: `RI${market.ri} 기본확률과 신용위험 ${market.creditRisk} 가중치를 ${term.label} 조건으로 보정한 일반 사고확률은 ${formatPercent(accidentProb)}였습니다.${
+              state.insurance ? " 수익에서 보험료 300이 차감됐습니다." : ""
+            }`
+          };
+        } else {
+          let loss = term.loss;
+          if (state.insurance) {
+            loss = loss * (1 - CONFIG.INSURANCE.accidentCoverage) + CONFIG.INSURANCE.premium;
+          }
+          state.fund -= loss;
+          result = {
+            type: "ACCIDENT",
+            delta: -loss,
+            title: "대금 미회수 사고가 발생했습니다.",
+            lead: `${market.country} 거래의 대금을 전부 회수하지 못했습니다.`,
+            why: `RI${market.ri} 기본확률과 신용위험 ${market.creditRisk} 가중치를 ${term.label} 조건으로 보정한 일반 사고확률은 ${formatPercent(accidentProb)}였습니다.${
+              state.insurance ? " 일반 사고 보상 70%와 보험료를 함께 반영했습니다." : ""
+            }`
+          };
+        }
+      }
+
+      state.fund = Math.round(state.fund);
+      recordResult(market, result, previousFund);
+    }
+
+    function handleFraud(sendImmediately) {
+      document.getElementById("fraud-dialog").close();
+      const market = state.pendingMarket;
+      if (!sendImmediately) {
+        resolveTurn(market);
+        return;
+      }
+      const previousFund = state.fund;
+      state.fund -= CONFIG.FRAUD_LOSS;
+      const result = {
+        type: "FRAUD",
+        delta: -CONFIG.FRAUD_LOSS,
+        title: "해킹 사기 피해가 발생했습니다.",
+        lead: "변경 계좌를 별도 확인하지 않아 제3자 계좌로 대금이 송금됐습니다.",
+        why: `시장 데이터로 읽는 위험과 계좌 사기는 다른 문제입니다. 제3자 편취 손실 ${formatNumber(CONFIG.FRAUD_LOSS)}은 무역보험 가입 여부와 관계없이 보상되지 않습니다.`
+      };
+      recordResult(market, result, previousFund);
+    }
+
+    function recordResult(market, result, previousFund) {
+      state.history.push({
+        stage: state.stage,
+        turn: state.turn,
+        market,
+        paymentTerm: state.paymentTerm,
+        insurance: state.insurance,
+        result: result.type,
+        delta: result.delta,
+        previousFund,
+        balance: state.fund
+      });
+      renderFund();
+      renderChart();
+      showResultDialog(result);
+    }
+
+    function showResultDialog(result) {
+      const icon = document.getElementById("result-icon");
+      icon.className = `result-icon ${result.type.toLowerCase()}`;
+      icon.innerHTML = ICONS[result.type];
+      document.getElementById("result-dialog-title").textContent = result.title;
+      document.getElementById("result-lead").textContent = result.lead;
+      const delta = document.getElementById("result-delta");
+      delta.textContent = `${signedAmount(result.delta)} 크레딧`;
+      delta.className = `delta ${result.delta >= 0 ? "positive" : "negative"}`;
+      document.getElementById("result-why").innerHTML = `<strong>왜 이런 결과가 났을까요?</strong><br>${escapeHtml(result.why)}`;
+      const nextButton = document.getElementById("result-next");
+      const finalTurn = state.stage === 2 && state.turn === CONFIG.TURNS_PER_STAGE;
+      nextButton.textContent =
+        state.fund < CONFIG.BANKRUPTCY_FUND || finalTurn ? "결과 확인" :
+        state.stage === 1 && state.turn === CONFIG.TURNS_PER_STAGE ? "스테이지 2로" :
+        "다음 분기";
+      document.getElementById("result-dialog").showModal();
+    }
+
+    function advanceAfterResult() {
+      document.getElementById("result-dialog").close();
+      if (state.fund < CONFIG.BANKRUPTCY_FUND) {
+        finishGame();
+        return;
+      }
+      if (state.stage === 1 && state.turn === CONFIG.TURNS_PER_STAGE) {
+        state.stage = 2;
+        state.turn = 1;
+        state.paymentTerm = "partial";
+        state.insurance = false;
+        document.getElementById("stage-dialog").showModal();
+        return;
+      }
+      if (state.stage === 2 && state.turn === CONFIG.TURNS_PER_STAGE) {
+        finishGame();
+        return;
+      }
+      state.turn += 1;
+      prepareTurn();
+    }
+
+    function renderChart() {
+      const svg = document.getElementById("fund-chart");
+      const balances = [CONFIG.START_FUND, ...state.history.map(item => item.balance)];
+      const maxValue = Math.max(14000, ...balances) * 1.08;
+      const minValue = 0;
+      const left = 56;
+      const right = 774;
+      const top = 18;
+      const bottom = 188;
+      const totalSlots = CONFIG.TURNS_PER_STAGE * 2;
+      const x = index => left + (right - left) * (index / totalSlots);
+      const y = value => bottom - (bottom - top) * ((value - minValue) / (maxValue - minValue));
+      const points = balances.map((value, index) => `${x(index)},${y(value)}`).join(" ");
+      const targetY = y(CONFIG.START_FUND);
+      const bankruptY = y(CONFIG.BANKRUPTCY_FUND);
+      const stageDividerX = x(CONFIG.TURNS_PER_STAGE);
+
+      svg.innerHTML = `
+        <line x1="${left}" y1="${targetY}" x2="${right}" y2="${targetY}" stroke="#287a45" stroke-width="1.5" stroke-dasharray="6 6"/>
+        <text x="4" y="${targetY + 4}" fill="#287a45" font-size="11">목표 10,000</text>
+        <line x1="${left}" y1="${bankruptY}" x2="${right}" y2="${bankruptY}" stroke="#b42331" stroke-width="1.5" stroke-dasharray="6 6"/>
+        <text x="4" y="${bankruptY + 4}" fill="#b42331" font-size="11">파산 3,000</text>
+        <line x1="${stageDividerX}" y1="${top}" x2="${stageDividerX}" y2="${bottom}" stroke="#cbd6e0" stroke-dasharray="3 6"/>
+        <text x="${stageDividerX + 8}" y="${top + 10}" fill="#708095" font-size="10">STAGE 2</text>
+        <line x1="${left}" y1="${bottom}" x2="${right}" y2="${bottom}" stroke="#dce4ec"/>
+        <polyline points="${points}" fill="none" stroke="#1662a8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        ${balances.map((value, index) => `
+          <circle cx="${x(index)}" cy="${y(value)}" r="5" fill="white" stroke="#1662a8" stroke-width="3"/>
+          <text x="${x(index)}" y="${bottom + 20}" text-anchor="middle" fill="#708095" font-size="10">${index === 0 ? "시작" : index}</text>
+        `).join("")}
+      `;
+      svg.setAttribute(
+        "aria-label",
+        `자금 추이. 시작 ${formatNumber(CONFIG.START_FUND)}에서 현재 ${formatNumber(state.fund)} 크레딧`
+      );
+    }
+
+    function finishGame() {
+      const status = state.fund < CONFIG.BANKRUPTCY_FUND
+        ? "실패" : state.fund >= CONFIG.START_FUND ? "성공" : "생존";
+      const title = {
+        성공: "데이터로 위험을 관리했습니다.",
+        생존: "회사는 살아남았습니다.",
+        실패: "자금이 파산선 아래로 내려갔습니다."
+      }[status];
+      const summary = {
+        성공: "위험과 수익의 균형을 맞추며 시작 자금 이상으로 경영을 마쳤습니다.",
+        생존: "파산은 피했지만 시작 자금을 회복하지 못했습니다. 조건과 보험의 비용을 다시 비교해보세요.",
+        실패: "한 번의 고위험 거래가 자금에 큰 영향을 줄 수 있습니다. 지표마다 다른 위험을 다시 나눠 보세요."
+      }[status];
+
+      document.getElementById("end-badge").textContent = `경영 결과 · ${status}`;
+      document.getElementById("end-badge").style.color =
+        status === "성공" ? "var(--green)" : status === "생존" ? "var(--amber)" : "var(--red)";
+      document.getElementById("end-badge").style.background =
+        status === "성공" ? "var(--green-soft)" : status === "생존" ? "var(--amber-soft)" : "var(--red-soft)";
+      document.getElementById("end-title").textContent = title;
+      document.getElementById("end-fund").textContent = formatNumber(state.fund);
+      document.getElementById("end-summary").textContent = summary;
+      document.getElementById("lesson-list").innerHTML =
+        buildLessons().map(lesson => `<li>${escapeHtml(lesson)}</li>`).join("");
+      showScreen("end");
+    }
+
+    function buildLessons() {
+      const lessons = [];
+      const emergencies = state.history.filter(item => item.result === "EMERGENCY");
+      const uninsuredEmergencies = emergencies.filter(item => !item.insurance);
+      const riskyUninsured = state.history.filter(item =>
+        item.stage === 2 && item.market.ri >= 4 && !item.insurance && item.paymentTerm === "postpaid"
+      );
+      const fraud = state.history.find(item => item.result === "FRAUD");
+      const insuredTurns = state.history.filter(item => item.insurance).length;
+
+      if (uninsuredEmergencies.length) {
+        lessons.push("나라 위험은 결제조건만으로 막기 어렵습니다. 국가등급이 높을수록 비상위험 담보를 함께 검토하세요.");
+      } else if (emergencies.length) {
+        lessons.push("비상위험 담보가 국가 차원의 손실을 줄였습니다. 나라 위험과 거래 상대 위험은 따로 관리해야 합니다.");
+      } else {
+        lessons.push("비상위험이 이번에는 발생하지 않았어도, 국가등급은 일반 미회수 확률과 별도로 읽어야 합니다.");
+      }
+      if (riskyUninsured.length) {
+        lessons.push("RI가 높은 시장의 후불·무보험 조합은 높은 수익만큼 큰 손실을 동반합니다.");
+      } else {
+        lessons.push("높은 위험을 무조건 피하기보다 결제조건과 보험으로 감당 가능한 수준까지 낮출 수 있습니다.");
+      }
+      if (fraud) {
+        lessons.push("계좌 변경 사기는 시장지표나 무역보험과 별개입니다. 기존 연락처로 재확인하는 절차가 필요합니다.");
+      } else {
+        lessons.push("종합 위험, 돈 떼일 위험, 나라 위험은 같은 숫자가 아니라 서로 다른 질문에 답하는 지표입니다.");
+      }
+      if (insuredTurns === CONFIG.TURNS_PER_STAGE) {
+        lessons.push("보험은 손실을 줄이지만 매번 보험료가 듭니다. 안전한 시장에서는 비용 대비 효과도 비교하세요.");
+      }
+      return lessons.slice(0, 4);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function resetGame() {
+      const demoMode = document.getElementById("demo-mode").checked;
+      state = createInitialState();
+      state.demoMode = demoMode;
+      showScreen("tutorial");
+    }
+
+    document.getElementById("data-status").textContent = MARKET_DATA.isSampleData
+      ? `예시 데이터 ${formatNumber(MARKET_DATA.markets.length)}개 시장`
+      : `실제 공공데이터 ${formatNumber(MARKET_DATA.markets.length)}개 시장`;
+
+    document.getElementById("start-button").addEventListener("click", resetGame);
+    document.getElementById("tutorial-back").addEventListener("click", () => showScreen("start"));
+    document.getElementById("tutorial-next").addEventListener("click", () => {
+      state.stage = 1;
+      state.turn = 1;
+      state.fund = CONFIG.START_FUND;
+      state.history = [];
+      state.usedMarketIds = new Set();
+      showScreen("game");
+      prepareTurn();
+    });
+    document.getElementById("resolve-button").addEventListener("click", submitTurn);
+    document.getElementById("result-next").addEventListener("click", advanceAfterResult);
+    document.getElementById("stage-next").addEventListener("click", () => {
+      document.getElementById("stage-dialog").close();
+      prepareTurn();
+    });
+    document.getElementById("fraud-send").addEventListener("click", () => handleFraud(true));
+    document.getElementById("fraud-check").addEventListener("click", () => handleFraud(false));
+    document.getElementById("restart-button").addEventListener("click", () => {
+      document.getElementById("demo-mode").checked = state.demoMode;
+      showScreen("start");
+    });
+  </script>
+</body>
+</html>
