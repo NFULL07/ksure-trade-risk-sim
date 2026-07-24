@@ -2,6 +2,8 @@ site-host/
 site-package-*.tar.gz
 handoff-context.md
 ksure-public-data-blog.docx
+docx-render/
+~$*.docx
 __pycache__/
 *.pyc
 .DS_Store

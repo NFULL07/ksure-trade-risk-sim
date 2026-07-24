@@ -1,6 +1,13 @@
 {
   "source": "한국무역보험공사 공공데이터포털 (국가별 업종별 위험지수/주요 업종별 신용위험지수/국가신용등급)",
   "isSampleData": false,
+  "dataVintages": {
+    "riskIndex": "2025-04",
+    "sectorCreditRisk": "2023",
+    "countryGrade": "2026-02-06",
+    "countryGradeMethod": "국가별 최신 평가일"
+  },
+  "creditRiskScope": "업종 단위",
   "markets": [
     {
       "id": "M0001",

@@ -391,6 +391,19 @@
 
     .tutorial-note strong { white-space: nowrap; }
 
+    .data-vintage {
+      margin-top: 12px;
+      padding: 14px 16px;
+      border: 1px solid #cbdff2;
+      border-radius: 14px;
+      color: #35536f;
+      background: #f2f7fc;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .data-vintage strong { color: var(--navy); }
+
     .tutorial-actions {
       display: flex;
       justify-content: flex-end;
@@ -1097,7 +1110,7 @@
           <div class="hero-facts" aria-label="게임 핵심 규칙">
             <div class="fact"><strong>8개 분기</strong><span>위험 읽기 4턴 + 조건 관리 4턴</span></div>
             <div class="fact"><strong>매 턴 3개 시장</strong><span>안전·중간·위험 층에서 하나씩 제시</span></div>
-            <div class="fact"><strong>파산선 3,000</strong><span>끝까지 버티고 시작 자금을 회복하세요</span></div>
+            <div class="fact"><strong>2단계 목표 +400</strong><span>조건 관리로 2단계 시작 자금보다 늘리세요</span></div>
           </div>
           <p class="disclaimer">
             한국무역보험공사 공공데이터(국가별 업종별 위험지수·주요 업종별 신용위험지수·국가신용등급) 기반.
@@ -1111,7 +1124,7 @@
           <span class="section-kicker">DATA BRIEFING</span>
           <h2 class="section-heading" id="tutorial-title">세 지표는 서로 다른 질문에 답합니다.</h2>
           <p class="section-lead">
-            숫자가 모두 높아 보인다고 같은 위험은 아닙니다. 시장 전반, 거래 상대의 대금 회수,
+            숫자가 모두 높아 보인다고 같은 위험은 아닙니다. 시장 전반, 업종의 대금 미회수,
             국가 차원의 비상위험을 나눠 읽는 것이 첫 번째 경영 판단입니다.
           </p>
           <div class="indicator-grid">
@@ -1123,9 +1136,9 @@
             </article>
             <article class="indicator-card">
               <div class="indicator-number">2</div>
-              <h3>돈 떼일 위험 · 낮음~높음</h3>
-              <p>신용평가를 받은 국외기업 중 신용불량 등급 비율입니다. 게임에서는 일반 사고확률에 가중됩니다.</p>
-              <span class="question-tag">“대금을 못 받을 가능성은?”</span>
+              <h3>업종 신용위험 · 낮음~높음</h3>
+              <p>신용평가를 받은 국외기업 중 신용불량 등급 비율을 업종 단위로 집계한 지표입니다. 같은 업종이면 국가가 달라도 같은 라벨을 사용하며, 게임에서는 일반 사고확률에 가중됩니다.</p>
+              <span class="question-tag">“이 업종의 대금 미회수 위험은?”</span>
             </article>
             <article class="indicator-card">
               <div class="indicator-number">3</div>
@@ -1137,6 +1150,9 @@
           <div class="tutorial-note">
             <strong>경영 원칙</strong>
             <span>위험도가 높은 시장도 조건과 보험으로 관리할 수 있습니다. 반대로 낮은 RI만 보고 나라 위험이나 신용위험을 놓치면 손실이 날 수 있습니다.</span>
+          </div>
+          <div class="data-vintage" id="data-vintage">
+            <strong>데이터 기준시점</strong>을 불러오는 중입니다.
           </div>
           <div class="tutorial-actions">
             <button class="secondary-button" id="tutorial-back" type="button">처음으로</button>
@@ -1156,7 +1172,7 @@
             <strong class="fund" id="fund-display">10,000</strong>
           </div>
           <div class="goal-lines">
-            목표선 <strong>10,000</strong><br>
+            <span id="goal-label">연습 기준</span> <strong id="goal-value">10,000</strong><br>
             파산선 <strong>3,000 미만</strong>
           </div>
           <div class="progress-track" aria-label="전체 게임 진행률">
@@ -1185,7 +1201,7 @@
               <input type="checkbox" id="insurance-toggle">
               <span>
                 <strong>비상위험 담보 포함</strong>
-                <small>보험료 300 · 일반 사고 손실 70%, 비상위험 손실 60% 보상</small>
+                <small id="insurance-detail">보험료는 성공 예상수익의 35%(50~250) · 일반 사고 손실 70%, 비상위험 손실 60% 보상</small>
               </span>
             </label>
           </div>
@@ -1256,6 +1272,7 @@
       <p class="dialog-lead">
         이제 시장뿐 아니라 결제조건과 보험도 고릅니다. 선불은 안전하지만 수익이 낮고,
         보험은 손실을 줄이지만 보험료가 듭니다. 나라 위험은 결제조건보다 보험으로 대비하세요.
+        이 단계 시작 자금보다 400 크레딧 이상 늘리면 성공입니다.
       </p>
     </div>
     <div class="dialog-actions">
@@ -1288,40 +1305,7 @@
     "use strict";
 
     /* ===== 게임 밸런스 설정: 공공 원천데이터와 분리된 교육용 설계값 ===== */
-    const CONFIG = Object.freeze({
-      START_FUND: 10000,
-      BANKRUPTCY_FUND: 3000,
-      DEAL_AMOUNT: 3000,
-      TURNS_PER_STAGE: 4,
-      RI_TABLE: Object.freeze({
-        1: { accidentProb: 0.05, returnRate: 0.08 },
-        2: { accidentProb: 0.15, returnRate: 0.12 },
-        3: { accidentProb: 0.30, returnRate: 0.20 },
-        4: { accidentProb: 0.50, returnRate: 0.32 },
-        5: { accidentProb: 0.70, returnRate: 0.45 }
-      }),
-      CREDIT_TABLE: Object.freeze({
-        "낮음": 0,
-        "중간": 0.05,
-        "높음": 0.12
-      }),
-      GRADE_TABLE: Object.freeze({
-        1: 0, 2: 0, 3: 0.08, 4: 0.08, 5: 0.20, 6: 0.35, 7: 0.35
-      }),
-      PAYMENT_TERMS: Object.freeze({
-        postpaid: { label: "후불(전액)", probMult: 1, returnMult: 1.35, loss: 3000, note: "고수익 · 고위험" },
-        partial: { label: "부분선불(50%)", probMult: 0.6, returnMult: 0.85, loss: 1500, note: "균형형 조건" },
-        prepaid: { label: "선불(전액)", probMult: 0.2, returnMult: 0.55, loss: 0, note: "저수익 · 저위험" }
-      }),
-      INSURANCE: Object.freeze({
-        premium: 300,
-        accidentCoverage: 0.70,
-        emergencyCoverage: 0.60
-      }),
-      EMERGENCY_LOSS: 1500,
-      FRAUD_LOSS: 3000,
-      FRAUD_EVENT_PROB: 0.35
-    });
+    const CONFIG = Object.freeze(__BALANCE_CONFIG__);
 
     /* ===== B-1에서 생성한 실제 시장 데이터 ===== */
     const MARKET_DATA = __MARKET_DATA__;
@@ -1358,7 +1342,8 @@
         demoMode: false,
         seed: 20250720,
         fraudCheckedThisTurn: false,
-        pendingMarket: null
+        pendingMarket: null,
+        stageTwoStartFund: null
       };
     }
 
@@ -1427,6 +1412,25 @@
       return `${Math.round(value * 100)}%`;
     }
 
+    function roundToTen(value) {
+      return Math.round(value / 10) * 10;
+    }
+
+    function grossProfit(market, term) {
+      return CONFIG.DEAL_AMOUNT * market.returnRate * term.returnMult;
+    }
+
+    function insurancePremium(market, term) {
+      const calculated = roundToTen(grossProfit(market, term) * CONFIG.INSURANCE.premiumRate);
+      return Math.min(CONFIG.INSURANCE.maxPremium, Math.max(CONFIG.INSURANCE.minPremium, calculated));
+    }
+
+    function currentTarget() {
+      return state.stageTwoStartFund === null
+        ? CONFIG.START_FUND
+        : state.stageTwoStartFund + CONFIG.STAGE2_TARGET_GAIN;
+    }
+
     function signedAmount(value) {
       const rounded = Math.round(value);
       return `${rounded >= 0 ? "+" : "−"}${formatNumber(Math.abs(rounded))}`;
@@ -1453,8 +1457,10 @@
       document.getElementById("turn-name").textContent =
         `${state.turn}분기 / ${CONFIG.TURNS_PER_STAGE}분기`;
       document.getElementById("stage-guide").textContent = isStageTwo
-        ? "시장·결제조건·보험을 함께 설계하세요. 비상위험은 거래 상대와 별도로 판정됩니다."
+        ? `시장·결제조건·보험을 함께 설계해 ${formatNumber(currentTarget())} 이상을 만드세요. 비상위험은 거래 상대와 별도로 판정됩니다.`
         : "스테이지 1은 후불 거래로 고정됩니다. 세 지표를 비교해 시장 하나를 고르세요.";
+      document.getElementById("goal-label").textContent = isStageTwo ? "2단계 목표" : "연습 기준";
+      document.getElementById("goal-value").textContent = formatNumber(currentTarget());
       document.getElementById("controls-panel").classList.toggle("hidden", !isStageTwo);
       document.getElementById("progress-fill").style.width =
         `${((state.stage - 1) * CONFIG.TURNS_PER_STAGE + state.turn - 1) / (CONFIG.TURNS_PER_STAGE * 2) * 100}%`;
@@ -1515,7 +1521,7 @@
                   ${segments(5, market.ri, "ri-segments")}
                 </span>
                 <span>
-                  <span class="metric-head"><span>돈 떼일 위험</span><strong>${market.creditRisk}</strong></span>
+                  <span class="metric-head"><span>업종 신용위험</span><strong>${market.creditRisk}</strong></span>
                   ${creditDots(market.creditRisk)}
                 </span>
                 <span>
@@ -1530,7 +1536,7 @@
                 </span>
                 <span class="yield-cell">
                   <span>일반 사고확률</span>
-                  <strong>${formatPercent(adjustedProb)}</strong>
+                  <strong>${state.stage === 1 ? "판정 후 공개" : formatPercent(adjustedProb)}</strong>
                 </span>
               </span>
             </span>
@@ -1541,6 +1547,7 @@
       grid.querySelectorAll(".market-radio").forEach(input => {
         input.addEventListener("change", event => {
           state.selectedId = event.target.value;
+          renderInsuranceDetail();
           renderDecision();
         });
       });
@@ -1561,6 +1568,7 @@
         input.addEventListener("change", event => {
           state.paymentTerm = event.target.value;
           renderMarkets();
+          renderInsuranceDetail();
           renderDecision();
         });
       });
@@ -1568,8 +1576,21 @@
       insurance.checked = state.insurance;
       insurance.onchange = event => {
         state.insurance = event.target.checked;
+        renderInsuranceDetail();
         renderDecision();
       };
+      renderInsuranceDetail();
+    }
+
+    function renderInsuranceDetail() {
+      const market = state.candidates.find(item => item.id === state.selectedId);
+      const detail = document.getElementById("insurance-detail");
+      if (!market) {
+        detail.textContent = "보험료는 성공 예상수익의 35%(50~250) · 일반 사고 손실 70%, 비상위험 손실 60% 보상";
+        return;
+      }
+      const term = CONFIG.PAYMENT_TERMS[state.paymentTerm];
+      detail.textContent = `이 거래 보험료 ${formatNumber(insurancePremium(market, term))} · 일반 사고 손실 70%, 비상위험 손실 60% 보상`;
     }
 
     function renderDecision() {
@@ -1583,7 +1604,9 @@
       }
       const conditions = state.stage === 1
         ? "후불(전액) · 보험 없음"
-        : `${CONFIG.PAYMENT_TERMS[state.paymentTerm].label} · 보험 ${state.insurance ? "가입" : "미가입"}`;
+        : `${CONFIG.PAYMENT_TERMS[state.paymentTerm].label} · 보험 ${state.insurance
+          ? `가입(보험료 ${formatNumber(insurancePremium(market, CONFIG.PAYMENT_TERMS[state.paymentTerm]))})`
+          : "미가입"}`;
       summary.innerHTML = `<strong>${escapeHtml(market.country)} · ${escapeHtml(market.sector)}</strong>${conditions}`;
     }
 
@@ -1607,12 +1630,13 @@
       const term = CONFIG.PAYMENT_TERMS[state.paymentTerm];
       const previousFund = state.fund;
       const emergencyRoll = random();
+      const premium = state.insurance ? insurancePremium(market, term) : 0;
       let result;
 
       if (emergencyRoll < market.emergencyProb) {
         let loss = CONFIG.EMERGENCY_LOSS;
         if (state.insurance) {
-          loss *= (1 - CONFIG.INSURANCE.emergencyCoverage);
+          loss = loss * (1 - CONFIG.INSURANCE.emergencyCoverage) + premium;
         }
         state.fund -= loss;
         result = {
@@ -1621,7 +1645,7 @@
           title: "비상위험이 발생했습니다.",
           lead: `${market.country} 시장에서 송금 지연·거래 중단 상황이 발생했습니다.`,
           why: `나라 위험 ${market.countryGrade}등급의 게임 기준 비상위험 확률은 ${formatPercent(market.emergencyProb)}입니다.${
-            state.insurance ? " 비상위험 담보가 손실의 60%를 보상했습니다." : " 보험이 없어 손실을 직접 부담했습니다."
+            state.insurance ? ` 비상위험 담보가 손실의 60%를 보상했고 보험료 ${formatNumber(premium)}을 납부했습니다.` : " 보험이 없어 손실을 직접 부담했습니다."
           }`
         };
       } else {
@@ -1629,8 +1653,7 @@
           (market.accidentProb + market.creditWeight) * term.probMult;
         const accidentRoll = random();
         if (accidentRoll >= accidentProb) {
-          let profit = CONFIG.DEAL_AMOUNT * market.returnRate * term.returnMult;
-          if (state.insurance) profit -= CONFIG.INSURANCE.premium;
+          let profit = grossProfit(market, term) - premium;
           state.fund += profit;
           result = {
             type: "SUCCESS",
@@ -1638,13 +1661,13 @@
             title: "대금 회수에 성공했습니다.",
             lead: `${market.country} 거래가 완료되어 수익이 자금에 반영됐습니다.`,
             why: `RI${market.ri} 기본확률과 신용위험 ${market.creditRisk} 가중치를 ${term.label} 조건으로 보정한 일반 사고확률은 ${formatPercent(accidentProb)}였습니다.${
-              state.insurance ? " 수익에서 보험료 300이 차감됐습니다." : ""
+              state.insurance ? ` 수익에서 보험료 ${formatNumber(premium)}이 차감됐습니다.` : ""
             }`
           };
         } else {
           let loss = term.loss;
           if (state.insurance) {
-            loss = loss * (1 - CONFIG.INSURANCE.accidentCoverage) + CONFIG.INSURANCE.premium;
+            loss = loss * (1 - CONFIG.INSURANCE.accidentCoverage) + premium;
           }
           state.fund -= loss;
           result = {
@@ -1653,7 +1676,7 @@
             title: "대금 미회수 사고가 발생했습니다.",
             lead: `${market.country} 거래의 대금을 전부 회수하지 못했습니다.`,
             why: `RI${market.ri} 기본확률과 신용위험 ${market.creditRisk} 가중치를 ${term.label} 조건으로 보정한 일반 사고확률은 ${formatPercent(accidentProb)}였습니다.${
-              state.insurance ? " 일반 사고 보상 70%와 보험료를 함께 반영했습니다." : ""
+              state.insurance ? ` 일반 사고 보상 70%와 보험료 ${formatNumber(premium)}을 함께 반영했습니다.` : ""
             }`
           };
         }
@@ -1725,6 +1748,7 @@
         return;
       }
       if (state.stage === 1 && state.turn === CONFIG.TURNS_PER_STAGE) {
+        state.stageTwoStartFund = state.fund;
         state.stage = 2;
         state.turn = 1;
         state.paymentTerm = "partial";
@@ -1743,7 +1767,8 @@
     function renderChart() {
       const svg = document.getElementById("fund-chart");
       const balances = [CONFIG.START_FUND, ...state.history.map(item => item.balance)];
-      const maxValue = Math.max(14000, ...balances) * 1.08;
+      const target = currentTarget();
+      const maxValue = Math.max(14000, target, ...balances) * 1.08;
       const minValue = 0;
       const left = 56;
       const right = 774;
@@ -1753,13 +1778,13 @@
       const x = index => left + (right - left) * (index / totalSlots);
       const y = value => bottom - (bottom - top) * ((value - minValue) / (maxValue - minValue));
       const points = balances.map((value, index) => `${x(index)},${y(value)}`).join(" ");
-      const targetY = y(CONFIG.START_FUND);
+      const targetY = y(target);
       const bankruptY = y(CONFIG.BANKRUPTCY_FUND);
       const stageDividerX = x(CONFIG.TURNS_PER_STAGE);
 
       svg.innerHTML = `
         <line x1="${left}" y1="${targetY}" x2="${right}" y2="${targetY}" stroke="#287a45" stroke-width="1.5" stroke-dasharray="6 6"/>
-        <text x="4" y="${targetY + 4}" fill="#287a45" font-size="11">목표 10,000</text>
+        <text x="4" y="${targetY + 4}" fill="#287a45" font-size="11">${state.stage === 2 ? "2단계 목표" : "연습 기준"} ${formatNumber(target)}</text>
         <line x1="${left}" y1="${bankruptY}" x2="${right}" y2="${bankruptY}" stroke="#b42331" stroke-width="1.5" stroke-dasharray="6 6"/>
         <text x="4" y="${bankruptY + 4}" fill="#b42331" font-size="11">파산 3,000</text>
         <line x1="${stageDividerX}" y1="${top}" x2="${stageDividerX}" y2="${bottom}" stroke="#cbd6e0" stroke-dasharray="3 6"/>
@@ -1778,16 +1803,17 @@
     }
 
     function finishGame() {
+      const stageTwoGain = state.stageTwoStartFund === null ? 0 : state.fund - state.stageTwoStartFund;
       const status = state.fund < CONFIG.BANKRUPTCY_FUND
-        ? "실패" : state.fund >= CONFIG.START_FUND ? "성공" : "생존";
+        ? "실패" : state.stageTwoStartFund !== null && state.fund >= currentTarget() ? "성공" : "생존";
       const title = {
         성공: "데이터로 위험을 관리했습니다.",
         생존: "회사는 살아남았습니다.",
         실패: "자금이 파산선 아래로 내려갔습니다."
       }[status];
       const summary = {
-        성공: "위험과 수익의 균형을 맞추며 시작 자금 이상으로 경영을 마쳤습니다.",
-        생존: "파산은 피했지만 시작 자금을 회복하지 못했습니다. 조건과 보험의 비용을 다시 비교해보세요.",
+        성공: `2단계에서 ${signedAmount(stageTwoGain)} 크레딧을 만들며 목표 +${formatNumber(CONFIG.STAGE2_TARGET_GAIN)}을 달성했습니다.`,
+        생존: `파산은 피했지만 2단계 성과는 ${signedAmount(stageTwoGain)} 크레딧이었습니다. 목표 +${formatNumber(CONFIG.STAGE2_TARGET_GAIN)}에 맞춰 조건과 보험을 다시 비교해보세요.`,
         실패: "한 번의 고위험 거래가 자금에 큰 영향을 줄 수 있습니다. 지표마다 다른 위험을 다시 나눠 보세요."
       }[status];
 
@@ -1829,7 +1855,7 @@
       if (fraud) {
         lessons.push("계좌 변경 사기는 시장지표나 무역보험과 별개입니다. 기존 연락처로 재확인하는 절차가 필요합니다.");
       } else {
-        lessons.push("종합 위험, 돈 떼일 위험, 나라 위험은 같은 숫자가 아니라 서로 다른 질문에 답하는 지표입니다.");
+        lessons.push("종합 위험, 업종 신용위험, 나라 위험은 같은 숫자가 아니라 서로 다른 질문에 답하는 지표입니다.");
       }
       if (insuredTurns === CONFIG.TURNS_PER_STAGE) {
         lessons.push("보험은 손실을 줄이지만 매번 보험료가 듭니다. 안전한 시장에서는 비용 대비 효과도 비교하세요.");
@@ -1856,6 +1882,12 @@
     document.getElementById("data-status").textContent = MARKET_DATA.isSampleData
       ? `예시 데이터 ${formatNumber(MARKET_DATA.markets.length)}개 시장`
       : `실제 공공데이터 ${formatNumber(MARKET_DATA.markets.length)}개 시장`;
+    document.getElementById("data-vintage").innerHTML = `
+      <strong>데이터 기준시점</strong><br>
+      RI ${escapeHtml(MARKET_DATA.dataVintages.riskIndex)} · 업종 신용위험 ${escapeHtml(MARKET_DATA.dataVintages.sectorCreditRisk)}년 ·
+      국가신용등급 ${escapeHtml(MARKET_DATA.dataVintages.countryGrade)}(${escapeHtml(MARKET_DATA.dataVintages.countryGradeMethod)}).
+      세 지표의 기준시점은 서로 다르며, 신용위험은 이 게임에서 업종 단위 지표입니다.
+    `;
 
     document.getElementById("start-button").addEventListener("click", resetGame);
     document.getElementById("tutorial-back").addEventListener("click", () => showScreen("start"));
@@ -1865,6 +1897,7 @@
       state.fund = CONFIG.START_FUND;
       state.history = [];
       state.usedMarketIds = new Set();
+      state.stageTwoStartFund = null;
       showScreen("game");
       prepareTurn();
     });

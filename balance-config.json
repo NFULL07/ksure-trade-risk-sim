@@ -1,0 +1,61 @@
+{
+  "START_FUND": 10000,
+  "BANKRUPTCY_FUND": 3000,
+  "DEAL_AMOUNT": 3000,
+  "TURNS_PER_STAGE": 4,
+  "STAGE2_TARGET_GAIN": 400,
+  "RI_TABLE": {
+    "1": { "accidentProb": 0.05, "returnRate": 0.08 },
+    "2": { "accidentProb": 0.15, "returnRate": 0.12 },
+    "3": { "accidentProb": 0.30, "returnRate": 0.20 },
+    "4": { "accidentProb": 0.50, "returnRate": 0.32 },
+    "5": { "accidentProb": 0.70, "returnRate": 0.45 }
+  },
+  "CREDIT_TABLE": {
+    "낮음": 0,
+    "중간": 0.05,
+    "높음": 0.12
+  },
+  "GRADE_TABLE": {
+    "1": 0,
+    "2": 0,
+    "3": 0.08,
+    "4": 0.08,
+    "5": 0.20,
+    "6": 0.35,
+    "7": 0.35
+  },
+  "PAYMENT_TERMS": {
+    "postpaid": {
+      "label": "후불(전액)",
+      "probMult": 1,
+      "returnMult": 1.35,
+      "loss": 3000,
+      "note": "고수익 · 고위험"
+    },
+    "partial": {
+      "label": "부분선불(50%)",
+      "probMult": 0.6,
+      "returnMult": 0.85,
+      "loss": 1500,
+      "note": "균형형 조건"
+    },
+    "prepaid": {
+      "label": "선불(전액)",
+      "probMult": 0.5,
+      "returnMult": 0.55,
+      "loss": 1200,
+      "note": "생산비 노출 · 저위험"
+    }
+  },
+  "INSURANCE": {
+    "premiumRate": 0.35,
+    "minPremium": 50,
+    "maxPremium": 250,
+    "accidentCoverage": 0.70,
+    "emergencyCoverage": 0.60
+  },
+  "EMERGENCY_LOSS": 1500,
+  "FRAUD_LOSS": 3000,
+  "FRAUD_EVENT_PROB": 0.08
+}

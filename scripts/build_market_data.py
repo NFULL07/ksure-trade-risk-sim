@@ -16,7 +16,6 @@ import csv
 import json
 import math
 import statistics
-import subprocess
 from collections import Counter
 from datetime import date
 from pathlib import Path
@@ -25,6 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_JSON = ROOT / "market-data.json"
 OUTPUT_REPORT = ROOT / "market-data-report.md"
+ISO_CODES = ROOT / "data" / "iso-country-codes.json"
 
 SOURCE_FILES = {
     "ri": ROOT / "한국무역보험공사_국가별 업종별 위험지수(RISK INDEX)_20250501.csv",
@@ -53,36 +53,6 @@ SECTOR_CROSSWALK = {
     "식료품 제조업": "식료품 제조업",
 }
 
-# K-SURE labels that differ from the Korean locale names returned by Windows.
-# These are spelling/spacing aliases only; no country identity is inferred from
-# a partial match.
-COUNTRY_CODE_ALIASES = {
-    "과달루프": "GLP",
-    "남아프리카공화국": "ZAF",
-    "도미니카공화국": "DOM",
-    "레위니옹": "REU",
-    "마샬군도": "MHL",
-    "마카오": "MAC",
-    "모리타니아": "MRT",
-    "베넹": "BEN",
-    "벨라루스": "BLR",
-    "보스니아-헤르체코비나": "BIH",
-    "사이프러스": "CYP",
-    "산 마리노": "SMR",
-    "아랍에미리트 연합": "ARE",
-    "영국령 버진군도": "VGB",
-    "조지아": "GEO",
-    "콩고": "COG",
-    "콩고민주공화국": "COD",
-    "키르기즈공화국": "KGZ",
-    "태국": "THA",
-    "튀르키예(구 터키)": "TUR",
-    "트리니다드토바고": "TTO",
-    "호주": "AUS",
-    "홍콩": "HKG",
-}
-
-
 def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="cp949", newline="") as handle:
         return list(csv.DictReader(handle))
@@ -100,33 +70,10 @@ def quantile(values: list[float], q: float) -> float:
     return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
 
 
-def load_windows_iso_map() -> dict[str, str]:
-    """Return Korean country display name -> ISO 3166 alpha-3 code."""
-    script = r"""
-$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
-$old = [System.Threading.Thread]::CurrentThread.CurrentUICulture
-[System.Threading.Thread]::CurrentThread.CurrentUICulture = [Globalization.CultureInfo]'ko-KR'
-$rows = [Globalization.CultureInfo]::GetCultures([Globalization.CultureTypes]::SpecificCultures) |
-  ForEach-Object {
-    try {
-      $r = [Globalization.RegionInfo]::new($_.Name)
-      if ($r.TwoLetterISORegionName.Length -eq 2) {
-        [PSCustomObject]@{name=$r.DisplayName; code=$r.ThreeLetterISORegionName}
-      }
-    } catch {}
-  } | Sort-Object name -Unique
-[System.Threading.Thread]::CurrentThread.CurrentUICulture = $old
-$rows | ConvertTo-Json -Compress
-"""
-    completed = subprocess.run(
-        ["powershell.exe", "-NoProfile", "-Command", script],
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-    rows = json.loads(completed.stdout)
-    return {row["name"]: row["code"] for row in rows}
+def load_iso_map() -> dict[str, str]:
+    """Return the audited Korean country name -> ISO alpha-3 mapping."""
+    data = json.loads(ISO_CODES.read_text(encoding="utf-8"))
+    return data["countryNameToAlpha3"]
 
 
 def build() -> tuple[dict, dict]:
@@ -187,8 +134,7 @@ def build() -> tuple[dict, dict]:
                 f"{existing[1]} vs {grade}"
             )
 
-    iso_map = load_windows_iso_map()
-    iso_map.update(COUNTRY_CODE_ALIASES)
+    iso_map = load_iso_map()
 
     joined: list[dict] = []
     seen_keys: set[tuple[str, str]] = set()
@@ -257,11 +203,25 @@ def build() -> tuple[dict, dict]:
             "(국가별 업종별 위험지수/주요 업종별 신용위험지수/국가신용등급)"
         ),
         "isSampleData": False,
+        "dataVintages": {
+            "riskIndex": latest_ri_month,
+            "sectorCreditRisk": latest_credit_year,
+            "countryGrade": max(
+                evaluated.isoformat()
+                for evaluated, _ in latest_grade_by_country.values()
+            ),
+            "countryGradeMethod": "국가별 최신 평가일",
+        },
+        "creditRiskScope": "업종 단위",
         "markets": markets,
     }
     audit = {
         "riMonth": latest_ri_month,
         "creditYear": latest_credit_year,
+        "latestCountryGradeDate": max(
+            evaluated.isoformat()
+            for evaluated, _ in latest_grade_by_country.values()
+        ),
         "creditLowerBoundary": lower_boundary,
         "creditUpperBoundary": upper_boundary,
         "marketCount": len(markets),
@@ -295,7 +255,8 @@ def write_outputs(result: dict, audit: dict) -> None:
 - 포함 업종: **{audit['sectorCount']}개**
 - RI 기준월: **{audit['riMonth']}**
 - 신용위험 기준연도: **{audit['creditYear']}**
-- 국가신용등급: 국가별 최신 평가일자 행
+- 국가신용등급 최신 평가일: **{audit['latestCountryGradeDate']}**
+- 국가신용등급 선택 방식: 국가별 최신 평가일자 행
 - `isSampleData`: **false**
 
 ## 신용위험 3분위 경계
@@ -315,8 +276,8 @@ def write_outputs(result: dict, audit: dict) -> None:
 3. 신용위험 파일은 최신 연도인 {audit['creditYear']} 행만 사용했다.
 4. 신용위험은 명시적 업종 교차표로 RI 업종에 연결했다.
 5. 국가등급은 동일 국가의 최신 평가일자 행만 사용했다.
-6. ISO 3166 alpha-3는 Windows 지역 표준 목록과 정확히 일치하는 한글명,
-   또는 철자·띄어쓰기만 다른 명시적 별칭표로 부여했다.
+6. ISO 3166 alpha-3는 저장소의 `data/iso-country-codes.json`에 있는
+   명시적 대응표로 부여했다. 운영체제의 지역 설정은 사용하지 않는다.
 7. 값이 하나라도 없거나 모호한 행은 추측·보간하지 않고 제외했다.
 
 `공사업`은 RI 파일의 여러 공사·건설 업종 중 어느 하나로 단정할 수 없어
@@ -332,6 +293,16 @@ def write_outputs(result: dict, audit: dict) -> None:
 | 높음(RI4~5) | {audit['strata'].get('높음(RI4~5)', 0):,} |
 
 세 층 모두 권장 최소치(2~3개)를 충분히 충족한다.
+
+## 데이터 범위와 최신성
+
+- 이 조인은 재현 가능한 파일 스냅샷 3개만 사용한다.
+- 신용위험 라벨은 **업종 단위**다. 같은 업종은 국가가 달라도 같은
+  신용위험 라벨을 갖는다.
+- 공공데이터포털에는 국가별 신용위험지수가 별도 파일·API로 제공되지만,
+  이 버전의 3개 파일 조인에는 포함하지 않았다.
+- 국가별·업종별 위험지수는 별도 실시간 API도 제공된다. 이 게임은 발표와
+  검증의 재현성을 위해 2025-05-01 파일의 최신 기준월을 고정해 사용한다.
 
 ## 완전성 검사
 

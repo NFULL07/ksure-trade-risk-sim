@@ -4,44 +4,27 @@ from __future__ import annotations
 
 import json
 import base64
-import subprocess
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "trade-risk-sim.template.html"
 MARKET_DATA = ROOT / "market-data.json"
+BALANCE_CONFIG = ROOT / "balance-config.json"
 OUTPUT = ROOT / "trade-risk-sim.html"
 KSURE_LOGO = ROOT / "assets" / "ksure-logo.png"
+ISO_CODES = ROOT / "data" / "iso-country-codes.json"
 
 
 def iso3_to_alpha2() -> dict[str, str]:
-    script = r"""
-$OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
-$rows = [Globalization.CultureInfo]::GetCultures([Globalization.CultureTypes]::SpecificCultures) |
-  ForEach-Object {
-    try {
-      $r = [Globalization.RegionInfo]::new($_.Name)
-      if ($r.TwoLetterISORegionName.Length -eq 2) {
-        [PSCustomObject]@{a3=$r.ThreeLetterISORegionName; a2=$r.TwoLetterISORegionName}
-      }
-    } catch {}
-  } | Sort-Object a3 -Unique
-$rows | ConvertTo-Json -Compress
-"""
-    completed = subprocess.run(
-        ["powershell.exe", "-NoProfile", "-Command", script],
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
-    return {row["a3"]: row["a2"] for row in json.loads(completed.stdout)}
+    data = json.loads(ISO_CODES.read_text(encoding="utf-8"))
+    return data["alpha3ToAlpha2"]
 
 
 def main() -> None:
     template = TEMPLATE.read_text(encoding="utf-8")
     market_data = json.loads(MARKET_DATA.read_text(encoding="utf-8"))
+    balance_config = json.loads(BALANCE_CONFIG.read_text(encoding="utf-8"))
     logo_data_uri = "data:image/png;base64," + base64.b64encode(
         KSURE_LOGO.read_bytes()
     ).decode("ascii")
@@ -54,12 +37,17 @@ def main() -> None:
 
     if template.count("__MARKET_DATA__") != 1:
         raise ValueError("Template must contain exactly one market-data placeholder")
+    if template.count("__BALANCE_CONFIG__") != 1:
+        raise ValueError("Template must contain exactly one balance-config placeholder")
     if template.count("__ISO3_TO_ALPHA2__") != 1:
         raise ValueError("Template must contain exactly one flag-code placeholder")
     if template.count("__KSURE_LOGO_DATA_URI__") != 1:
         raise ValueError("Template must contain exactly one logo placeholder")
 
     output = template.replace(
+        "__BALANCE_CONFIG__",
+        json.dumps(balance_config, ensure_ascii=False, separators=(",", ":")),
+    ).replace(
         "__MARKET_DATA__",
         json.dumps(market_data, ensure_ascii=False, separators=(",", ":")),
     ).replace(
