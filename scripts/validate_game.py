@@ -90,6 +90,8 @@ def main() -> None:
     )
 
     require(config["PAYMENT_TERMS"]["prepaid"]["loss"] > 0, "Prepaid must retain loss exposure")
+    require(config["STAGE1_TURNS"] == 2, "Stage 1 must contain two presentation-friendly turns")
+    require(config["STAGE2_TURNS"] == 4, "Stage 2 must retain four decision turns")
     require(config["STAGE2_TARGET_GAIN"] > 0, "Stage 2 target gain must be positive")
     require(0 < config["FRAUD_EVENT_PROB"] <= 0.10, "Fraud event must remain low probability")
     for ri in range(1, 6):
@@ -135,6 +137,9 @@ def main() -> None:
         "insurancePremium",
         "currentTarget",
         "stageTwoStartFund",
+        "stageTurnLimit",
+        "STAGE1_TURNS",
+        "STAGE2_TURNS",
         "EMERGENCY",
         "ACCIDENT",
         "SUCCESS",

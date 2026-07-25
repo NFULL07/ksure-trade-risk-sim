@@ -2,7 +2,8 @@
   "START_FUND": 10000,
   "BANKRUPTCY_FUND": 3000,
   "DEAL_AMOUNT": 3000,
-  "TURNS_PER_STAGE": 4,
+  "STAGE1_TURNS": 2,
+  "STAGE2_TURNS": 4,
   "STAGE2_TARGET_GAIN": 400,
   "RI_TABLE": {
     "1": { "accidentProb": 0.05, "returnRate": 0.08 },

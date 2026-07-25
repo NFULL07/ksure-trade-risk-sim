@@ -1131,7 +1131,7 @@
             </label>
           </div>
           <div class="hero-facts" aria-label="게임 핵심 규칙">
-            <div class="fact"><strong>8개 분기</strong><span>위험 읽기 4턴 + 조건 관리 4턴</span></div>
+            <div class="fact"><strong>6개 분기</strong><span>위험 읽기 2턴 + 조건 관리 4턴</span></div>
             <div class="fact"><strong>매 턴 3개 시장</strong><span>안전·중간·위험 층에서 하나씩 제시</span></div>
             <div class="fact"><strong>2단계 목표 +400</strong><span>조건 관리로 2단계 시작 자금보다 늘리세요</span></div>
           </div>
@@ -1188,7 +1188,7 @@
         <div class="game-topbar">
           <div>
             <div class="stage-name" id="stage-name">STAGE 1 · 위험지수 읽기</div>
-            <div class="turn-name" id="turn-name">1분기 / 4분기</div>
+            <div class="turn-name" id="turn-name">1분기 / 2분기</div>
           </div>
           <div class="fund-block" aria-live="polite">
             <span class="fund-label">보유 자금</span>
@@ -1486,6 +1486,10 @@
         : state.stageTwoStartFund + CONFIG.STAGE2_TARGET_GAIN;
     }
 
+    function stageTurnLimit(stage = state.stage) {
+      return stage === 1 ? CONFIG.STAGE1_TURNS : CONFIG.STAGE2_TURNS;
+    }
+
     function signedAmount(value) {
       const rounded = Math.round(value);
       return `${rounded >= 0 ? "+" : "−"}${formatNumber(Math.abs(rounded))}`;
@@ -1512,7 +1516,7 @@
       document.getElementById("stage-name").textContent =
         isStageTwo ? "STAGE 2 · 조건으로 위험 관리" : "STAGE 1 · 위험지수 읽기";
       document.getElementById("turn-name").textContent =
-        `${state.turn}분기 / ${CONFIG.TURNS_PER_STAGE}분기`;
+        `${state.turn}분기 / ${stageTurnLimit()}분기`;
       document.getElementById("stage-guide").textContent = isStageTwo
         ? `시장·결제조건·보험을 함께 설계해 ${formatNumber(currentTarget())} 이상을 만드세요. 비상위험은 거래 상대와 별도로 판정됩니다.`
         : "스테이지 1은 후불 거래로 고정됩니다. 세 지표를 비교해 시장 하나를 고르세요.";
@@ -1520,7 +1524,8 @@
       document.getElementById("goal-value").textContent = formatNumber(currentTarget());
       document.getElementById("controls-panel").classList.toggle("hidden", !isStageTwo);
       document.getElementById("progress-fill").style.width =
-        `${((state.stage - 1) * CONFIG.TURNS_PER_STAGE + state.turn - 1) / (CONFIG.TURNS_PER_STAGE * 2) * 100}%`;
+        `${((state.stage === 1 ? 0 : CONFIG.STAGE1_TURNS) + state.turn - 1) /
+          (CONFIG.STAGE1_TURNS + CONFIG.STAGE2_TURNS) * 100}%`;
       renderFund();
       renderMarkets();
       renderTermOptions();
@@ -1686,7 +1691,7 @@
     function specialScenarioForTurn() {
       if (state.stage !== 2) return null;
       if (state.turn === 2) return SPECIAL_SCENARIOS.forgedReceipt;
-      if (state.turn === CONFIG.TURNS_PER_STAGE) return SPECIAL_SCENARIOS.accountChange;
+      if (state.turn === CONFIG.STAGE2_TURNS) return SPECIAL_SCENARIOS.accountChange;
       return null;
     }
 
@@ -1824,11 +1829,11 @@
       document.getElementById("result-why").innerHTML =
         `<strong>${escapeHtml(result.whyHeading || "왜 이런 결과가 났을까요?")}</strong><br>${escapeHtml(result.why)}`;
       const nextButton = document.getElementById("result-next");
-      const finalTurn = state.stage === 2 && state.turn === CONFIG.TURNS_PER_STAGE;
+      const finalTurn = state.stage === 2 && state.turn === CONFIG.STAGE2_TURNS;
       nextButton.textContent =
         state.pendingTradeAfterSpecial ? "원래 거래 결과 확인" :
         state.fund < CONFIG.BANKRUPTCY_FUND || finalTurn ? "결과 확인" :
-        state.stage === 1 && state.turn === CONFIG.TURNS_PER_STAGE ? "스테이지 2로" :
+        state.stage === 1 && state.turn === CONFIG.STAGE1_TURNS ? "스테이지 2로" :
         "다음 분기";
       document.getElementById("result-dialog").showModal();
     }
@@ -1846,7 +1851,7 @@
         finishGame();
         return;
       }
-      if (state.stage === 1 && state.turn === CONFIG.TURNS_PER_STAGE) {
+      if (state.stage === 1 && state.turn === CONFIG.STAGE1_TURNS) {
         state.stageTwoStartFund = state.fund;
         state.stage = 2;
         state.turn = 1;
@@ -1855,7 +1860,7 @@
         document.getElementById("stage-dialog").showModal();
         return;
       }
-      if (state.stage === 2 && state.turn === CONFIG.TURNS_PER_STAGE) {
+      if (state.stage === 2 && state.turn === CONFIG.STAGE2_TURNS) {
         finishGame();
         return;
       }
@@ -1873,13 +1878,13 @@
       const right = 774;
       const top = 18;
       const bottom = 188;
-      const totalSlots = CONFIG.TURNS_PER_STAGE * 2;
+      const totalSlots = CONFIG.STAGE1_TURNS + CONFIG.STAGE2_TURNS;
       const x = index => left + (right - left) * (index / totalSlots);
       const y = value => bottom - (bottom - top) * ((value - minValue) / (maxValue - minValue));
       const points = balances.map((value, index) => `${x(index)},${y(value)}`).join(" ");
       const targetY = y(target);
       const bankruptY = y(CONFIG.BANKRUPTCY_FUND);
-      const stageDividerX = x(CONFIG.TURNS_PER_STAGE);
+      const stageDividerX = x(CONFIG.STAGE1_TURNS);
 
       svg.innerHTML = `
         <line x1="${left}" y1="${targetY}" x2="${right}" y2="${targetY}" stroke="#287a45" stroke-width="1.5" stroke-dasharray="6 6"/>
@@ -1959,7 +1964,7 @@
       } else {
         lessons.push("종합 위험, 업종 신용위험, 나라 위험은 같은 숫자가 아니라 서로 다른 질문에 답하는 지표입니다.");
       }
-      if (insuredTurns === CONFIG.TURNS_PER_STAGE) {
+      if (insuredTurns === CONFIG.STAGE2_TURNS) {
         lessons.push("보험은 손실을 줄이지만 매번 보험료가 듭니다. 안전한 시장에서는 비용 대비 효과도 비교하세요.");
       }
       return lessons.slice(0, 4);

@@ -24,7 +24,8 @@ CONFIG = json.loads(BALANCE_CONFIG.read_text(encoding="utf-8"))
 START_FUND = CONFIG["START_FUND"]
 BANKRUPTCY_FUND = CONFIG["BANKRUPTCY_FUND"]
 DEAL_AMOUNT = CONFIG["DEAL_AMOUNT"]
-TURNS_PER_STAGE = CONFIG["TURNS_PER_STAGE"]
+STAGE1_TURNS = CONFIG["STAGE1_TURNS"]
+STAGE2_TURNS = CONFIG["STAGE2_TURNS"]
 EMERGENCY_LOSS = CONFIG["EMERGENCY_LOSS"]
 STAGE2_TARGET_GAIN = CONFIG["STAGE2_TARGET_GAIN"]
 PREMIUM_RATE = CONFIG["INSURANCE"]["premiumRate"]
@@ -115,10 +116,10 @@ def run_policy(
     stage2_gains: list[int] = []
 
     for _ in range(runs):
-        selected = rng.sample(low_markets, TURNS_PER_STAGE * 2)
+        selected = rng.sample(low_markets, STAGE1_TURNS + STAGE2_TURNS)
         fund = START_FUND
 
-        for market in selected[:TURNS_PER_STAGE]:
+        for market in selected[:STAGE1_TURNS]:
             fund += resolve_turn(rng, market, PAYMENT_TERMS["postpaid"], False)
             if fund < BANKRUPTCY_FUND:
                 break
@@ -133,7 +134,7 @@ def run_policy(
             stage1_at_or_above_start += 1
 
         stage2_start = fund
-        for market in selected[TURNS_PER_STAGE:]:
+        for market in selected[STAGE1_TURNS:]:
             fund += resolve_turn(rng, market, term, insured)
             if fund < BANKRUPTCY_FUND:
                 break
@@ -171,6 +172,7 @@ def render_report(results: list[dict], runs: int, seed: int) -> str:
 - 반복 횟수: 정책별 **{runs:,}회**
 - 난수 시드: **{seed}**
 - 플레이 방식: 매 턴 낮은 RI 후보 선택
+- 턴 구성: 스테이지 1 **{STAGE1_TURNS}턴** + 스테이지 2 **{STAGE2_TURNS}턴**
 - 스테이지 1: 후불·무보험 고정
 - 스테이지 2 성공: 시작 시점 자금보다 **{STAGE2_TARGET_GAIN:,} 크레딧 이상 증가**
 - 선불 사고 손실: **{PAYMENT_TERMS['prepaid'].loss:,} 크레딧**
